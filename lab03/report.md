@@ -15,10 +15,10 @@ Three sample documents were transformed into a 3 x 11 Document-Term Matrix using
 
 | | The corpus |
 |---|---|
-| Documents | 3 |
-| Unique vocabulary terms | 11 |
-| Matrix shape | 3 x 11 |
-| Sparsity | 54.5 % |
+| Documents | 40 |
+| Unique vocabulary terms | 210 |
+| Matrix shape | 40 x 210 |
+| Sparsity | 96.2 % |
 
 ![BoW Document-Term Matrix](figures/01_bow_matrix.png)
 

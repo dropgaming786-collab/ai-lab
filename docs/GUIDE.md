@@ -156,10 +156,15 @@ Lab 03 examines the transformation of qualitative textual strings and 2D pixel a
 
 ### 5.2 Part A — Bag-of-Words (BoW) Text Transformation
 - **Vectorization Pipeline:** `CountVectorizer` converts an $N$-document collection into an $N \times V$ Document-Term Matrix (DTM).
+- **Expanded Corpus ($N=40$ Documents):**
+  The corpus was expanded by adding 37 distinct documents (lines) to the original 3, forming a rich 40-sentence dataset.
+  - **Feature Space:** $40 \text{ documents} \times 210 \text{ unique vocabulary terms}$.
+  - **Total Matrix Cells:** $40 \times 210 = 8,400$.
+  - **Zero Cells:** $8,083$ cells.
+  - **Sparsity:** **$96.2\%$** zero entries, demonstrating how BoW sparsity rapidly climbs toward enterprise levels ($>99\%$) as corpus diversity grows.
 - **Silent Design Decisions:**
   1. Automated lowercase conversion eliminates case sensitivity.
   2. The default token pattern `(?u)\b\w\w+\b` drops all single-character tokens (e.g., `"a"` is silently discarded).
-- **Sparsity:** In our 3-document toy corpus, sparsity was $54.5\%$. In enterprise corpora ($N=20,000$, $V=50,000$), sparsity routinely exceeds $99\%$, requiring compressed sparse row (`scipy.sparse.csr_matrix`) structures.
 
 ### 5.3 Part B — Image Feature Engineering
 - **Grayscale Dimensionality Reduction:** Collapses three RGB channels into one luminance channel using standard weighted perceptual luminance ($Y \approx 0.299R + 0.587G + 0.114B$).

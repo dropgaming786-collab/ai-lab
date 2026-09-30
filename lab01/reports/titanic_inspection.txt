@@ -1,0 +1,42 @@
+======================================================================
+SOURCE : https://raw.githubusercontent.com/mwaskom/seaborn-data/master/titanic.csv
+SHAPE  : 891 rows x 15 columns
+======================================================================
+
+--- DATA TYPES ---
+survived         int64
+pclass           int64
+sex                str
+age            float64
+sibsp            int64
+parch            int64
+fare           float64
+embarked           str
+class              str
+who                str
+adult_male        bool
+deck               str
+embark_town        str
+alive              str
+alone             bool
+dtype: object
+
+--- MISSING VALUES ---
+             missing  percent
+deck             688    77.22
+age              177    19.87
+embarked           2     0.22
+embark_town        2     0.22
+
+--- NUMERIC SUMMARY ---
+         survived      pclass         age       sibsp       parch        fare
+count  891.000000  891.000000  714.000000  891.000000  891.000000  891.000000
+mean     0.383838    2.308642   29.699118    0.523008    0.381594   32.204208
+std      0.486592    0.836071   14.526497    1.102743    0.806057   49.693429
+min      0.000000    1.000000    0.420000    0.000000    0.000000    0.000000
+25%      0.000000    2.000000   20.125000    0.000000    0.000000    7.910400
+50%      0.000000    3.000000   28.000000    0.000000    0.000000   14.454200
+75%      1.000000    3.000000   38.000000    1.000000    0.000000   31.000000
+max      1.000000    3.000000   80.000000    8.000000    6.000000  512.329200
+======================================================================
+

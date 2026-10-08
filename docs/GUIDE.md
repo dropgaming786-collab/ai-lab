@@ -23,8 +23,10 @@ All source code, notebooks, dataset generators, figure renderers, and persistent
 ```
 ai-lab/
 │
+├── .agents/skills/solve-lab/       # Autonomous single-command laboratory completion skill
 ├── .gitignore                      # Course-standard exclusions (data, environments, checkpoints)
 ├── requirements.txt                # Pinned dependencies from the ai-lab environment
+├── solve_lab.py                    # Master One-Command CLI Lab Pipeline Runner
 │
 ├── docs/
 │   └── GUIDE.md                    # This master technical guide
@@ -49,7 +51,8 @@ ai-lab/
 │       ├── 02_sentiment_polarity_dist.png
 │       ├── 03_pairplot.png
 │       ├── 04_tfidf_terms.png
-│       └── 05_home_assignment_comparison.png
+│       ├── 05_home_assignment_comparison.png
+│       └── 06_extended_pairplot.png
 │
 ├── lab03/                          # LABORATORY 03: Text & Image Feature Engineering
 │   ├── text_image_features.ipynb   # Executed 38-cell notebook (Part A, Part B, 4 Exercises)
@@ -70,9 +73,22 @@ ai-lab/
 │       ├── E2_fourth_document.png
 │       └── E3_resize_comparison.png
 │
+├── lab04/                          # LABORATORY 04: Scikit-learn & Traditional ML
+│   ├── sklearn_intro.ipynb         # Executed notebook with all exercises & home tasks
+│   ├── linear_model.pkl            # Persisted OLS regression model
+│   ├── sentiment_pipeline.pkl      # Persisted text sentiment pipeline
+│   ├── build_deliverables.py       # Deliverables builder and exercise solver
+│   ├── report.md                   # Formal evaluation report and coefficient analysis
+│   └── figures/                    # Exported diagnostic plots
+│       ├── actual_vs_predicted.png
+│       ├── standardized_coefficients.png
+│       ├── iris_confusion_matrix.png
+│       └── sentiment_confusion_matrix.png
+│
 ├── Lab_01_Environment_Setup.ipynb  # Root master copy of Lab 01
 ├── Lab_02_Web_Scraping_and_EDA.ipynb # Root master copy of Lab 02
-└── Lab_03_Text_and_Image_Features.ipynb # Root master copy of Lab 03
+├── Lab_03_Text_and_Image_Features.ipynb # Root master copy of Lab 03
+└── Lab 04.ipynb                    # Root master copy of Lab 04
 ```
 
 ---
@@ -206,7 +222,83 @@ Lab 03 examines the transformation of qualitative textual strings and 2D pixel a
 
 ---
 
-## 6. Verification and Reproduction Instructions
+---
+
+## 6. Laboratory 04 Deep Dive: Scikit-learn and Traditional Machine Learning
+
+### 6.1 Architecture & Objectives
+Lab 04 explores foundational machine learning algorithms using Scikit-learn:
+1. **Regression Modelling:** Ordinary Least Squares Linear Regression on the California Housing dataset ($N=20,640$, 8 features).
+2. **Preprocessing Pipelines:** Chaining `StandardScaler` and `LinearRegression` into a single atomic object to guarantee leak-free evaluation.
+3. **Multiclass Classification:** Training and evaluating `LogisticRegression` and `DecisionTreeClassifier` on Fisher's Iris dataset.
+4. **Model Serialization:** Disk persistence and deserialization of trained estimators with `joblib`.
+5. **Text Classification Pipeline:** End-to-end sentiment classification on the scraped corpus from Laboratory 2 using a chained `TfidfVectorizer` + `LogisticRegression` pipeline.
+
+### 6.2 Key Results & In-Lab Exercises Solutions
+- **Exercise 1 (Standardisation Invariance in OLS):**
+  - Plain Linear Regression $R^2 = 0.575788$; Pipeline with StandardScaler $R^2 = 0.575788$ (identical to 6 decimal places).
+  - *Why?* Linear regression finds the orthogonal projection onto the subspace spanned by $X$. Rescaling features linearly scales the weights $\beta$, but leaves the column space, fitted values $\hat{y}$, and $R^2$ unchanged.
+  - *Where it alters performance:* Regularized models (Ridge/Lasso where penalties treat all coefficients equally regardless of scale), distance-based models ($k$-NN, SVM), and gradient-descent models (Neural Networks).
+- **Exercise 2 (Regression Coefficient Analysis):**
+  - Two largest absolute raw coefficients: `AveBedrms` ($|\beta| = 0.7831$) and `MedInc` ($|\beta| = 0.4487$).
+  - *Why raw coefficients deceive:* Raw coefficients depend on physical units (residents vs rooms vs dollars). When standardized, `Latitude` ($-0.897$), `Longitude` ($-0.870$), and `MedInc` ($+0.854$) have the strongest predictive impact, while `AveBedrms` drops to $0.339$.
+- **Exercise 3 (Iris Confusion Matrix & Class Overlap):**
+  - Iris contains 3 species: Setosa (class 0), Versicolor (class 1), Virginica (class 2).
+  - Setosa is linearly separable with 100% precision and recall.
+  - The two species that overlap geometrically and are confused under tighter splits are **Versicolor** and **Virginica**, due to overlapping petal length/width distributions.
+- **Exercise 4 (Unified Estimator API):**
+  - Replaced `LogisticRegression` with `DecisionTreeClassifier(random_state=42)` with zero changes to downstream evaluation code.
+  - Demonstrates Scikit-learn's object-oriented design where all estimators implement `.fit(X, y)` and `.predict(X)`.
+
+### 6.3 Home Assignment: Text Sentiment Pipeline
+- **Corpus:** 14 scraped articles from Laboratory 2 (`two_source_corpus.csv`).
+- **Binary Target:** Polarity categorized into above-median ($y=1$) vs below-median ($y=0$) using median threshold $\tau = 0.1142$.
+- **Pipeline:** `Pipeline([('tfidf', TfidfVectorizer(stop_words='english')), ('model', LogisticRegression())])`.
+- **Zero-Preprocessing Inference:** Persisted with `joblib.dump(..., 'sentiment_pipeline.pkl')`. Upon reloading, raw strings are directly passed to `loaded_pipe.predict(["..."])` without manual feature engineering.
+
+---
+
+## 7. Single-Command Automated Workflow
+
+The repository includes a unified, single-command automated workflow so that any newly added lab or complete portfolio update can be executed end-to-end with one command:
+
+### 7.1 Option A: In-Chat Antigravity Skill (`/solve-lab`)
+Type the slash command directly in chat:
+```
+/solve-lab
+```
+Or specify a lab:
+```
+solve lab 04
+```
+**What the skill does autonomously:**
+1. Discovers the target notebook (`Lab XX.ipynb`).
+2. Creates `labXX/` and `labXX/figures/`.
+3. Runs all model training, evaluation, and persists artefacts (`*.pkl`, `*.npz`).
+4. Solves all in-lab exercises and home assignments.
+5. Populates the notebook with executed outputs and markdown answers.
+6. Writes `labXX/report.md` and updates `docs/GUIDE.md`.
+7. Stages, commits, and pushes everything to GitHub!
+
+### 7.2 Option B: Terminal Master CLI (`solve_lab.py`)
+Run from PowerShell or terminal:
+```powershell
+# Build specific lab
+python solve_lab.py --lab 4
+
+# Build specific lab and automatically push to GitHub
+python solve_lab.py --lab 4 --push
+
+# Auto-detect latest uploaded lab and push
+python solve_lab.py --auto --push
+
+# Re-build all labs (01, 02, 03, 04)
+python solve_lab.py --all
+```
+
+---
+
+## 8. Verification and Reproduction Instructions
 
 To execute and verify the complete workflow on any machine running Windows, macOS, or Linux:
 
@@ -215,22 +307,21 @@ To execute and verify the complete workflow on any machine running Windows, macO
 conda activate ai-lab
 ```
 
-### 2. Run Lab 01 Data Inspection
+### 2. Run All Labs in One Command
+```powershell
+python solve_lab.py --all
+```
+
+### 3. Or Run Individual Lab Builders
 ```powershell
 python "lab01/inspect.py"
-```
-
-### 3. Build Lab 02 Deliverables & Two-Source Scrape
-```powershell
 python "lab02/build_deliverables.py"
-```
-
-### 4. Build Lab 03 Deliverables & Exercises
-```powershell
 python "lab03/build_deliverables.py"
 python "lab03/solve_exercises.py"
+python "lab04/build_deliverables.py"
 ```
 
 ---
 
 *This guide was generated to accompany commit updates to the `ai-lab` repository portfolio.*
+

@@ -4,4 +4,6 @@ __pycache__/
 env/
 data/
 *.pkl
+!lab04/*.pkl
+!lab05/*.pkl
 .env

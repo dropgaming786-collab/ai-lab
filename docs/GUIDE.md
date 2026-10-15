@@ -13,6 +13,8 @@ This document serves as the complete technical manual and project guide for the 
 - **Lab 01:** Environment Setup (Anaconda, Jupyter, Git), Data Inspection Engine (`inspect.py`), and Statistical Diagnostics.
 - **Lab 02:** Polite Web Scraping, Linguistic & Sentiment Feature Extraction (spaCy + TextBlob), Exploratory Data Analysis, and Two-Source Comparative Scraping.
 - **Lab 03:** Multimodal Feature Engineering — Bag-of-Words (BoW) & N-Grams for Text, Image Preprocessing Pipelines (Grayscale & Flattening), Curated 20-Sample Two-Class Image Dataset, and Dimensionality Diagnostics.
+- **Lab 04:** Scikit-learn Fundamentals — Linear Regression, Scaling Invariance, Iris Multiclass Classification, Estimator API, and Text Sentiment Pipelines.
+- **Lab 05:** End-to-End Classification — Titanic Survival Prediction, Feature Engineering (FamilySize, IsAlone), 5-Model Benchmark (LR, DT, RF, KNN, SVC), ROC/AUC Analysis, 5-Fold Stratified Stability, ColumnTransformer Leakage-Free Pipeline, and Artefact Serialization for Lab 06 FastAPI.
 
 All source code, notebooks, dataset generators, figure renderers, and persistent model artefacts are organized modularly inside their respective laboratory directories.
 
@@ -85,10 +87,27 @@ ai-lab/
 │       ├── iris_confusion_matrix.png
 │       └── sentiment_confusion_matrix.png
 │
+├── lab05/                          # LABORATORY 05: Titanic Classification System
+│   ├── titanic_classification.ipynb # Executed notebook with all exercises & home tasks
+│   ├── sample-data.csv             # Operational passenger tabular dataset
+│   ├── titanic_best_model.joblib   # Tuned winning estimator pipeline (GridSearchCV)
+│   ├── build_deliverables.py       # Automated build script for Lab 05
+│   ├── report.md                   # Academic report with 5-model comparison & leakage analysis
+│   ├── pclass_encoder.pkl          # Fitted LabelEncoder for PClass (for Lab 06 FastAPI)
+│   ├── gender_encoder.pkl          # Fitted LabelEncoder for Gender (for Lab 06 FastAPI)
+│   ├── sibling_encoder.pkl         # Fitted LabelEncoder for Sibling (for Lab 06 FastAPI)
+│   ├── embarked_encoder.pkl        # Fitted LabelEncoder for Embarked (for Lab 06 FastAPI)
+│   ├── survived_encoder.pkl        # Fitted LabelEncoder for Survived (for Lab 06 FastAPI)
+│   └── figures/                    # High-resolution exported diagnostic plots
+│       ├── roc_curve.png           # Multi-model ROC curves with AUC annotations
+│       ├── model_comparison.png    # Bar chart comparing Test Accuracy vs 5-Fold CV
+│       └── confusion_matrix_best.png # Confusion matrix of the best model
+│
 ├── Lab_01_Environment_Setup.ipynb  # Root master copy of Lab 01
 ├── Lab_02_Web_Scraping_and_EDA.ipynb # Root master copy of Lab 02
 ├── Lab_03_Text_and_Image_Features.ipynb # Root master copy of Lab 03
-└── Lab 04.ipynb                    # Root master copy of Lab 04
+├── Lab 04.ipynb                    # Root master copy of Lab 04
+└── Lab 05.ipynb                    # Root master copy of Lab 05
 ```
 
 ---
@@ -258,47 +277,111 @@ Lab 04 explores foundational machine learning algorithms using Scikit-learn:
 
 ---
 
-## 7. Single-Command Automated Workflow
+## 7. Laboratory 05 Deep Dive: Titanic Passenger Survival Prediction System
+
+### 7.1 Architecture & The Machine Learning Lifecycle
+Laboratory 05 represents the architectural hinge of the entire AI-101L curriculum. All preceding labs developed data ingestion and features; subsequent laboratories consume the persisted estimator constructed here:
+- **Lab 06:** Wraps the fitted model in a high-performance **FastAPI microservice** (`/predict`, `/health`, `/metadata`).
+- **Labs 11–12:** Constructs an interactive Next.js web application for end-user survival predictions.
+- **Labs 14–16:** Implements live prediction logging, feedback collection, drift monitoring, and automated retraining.
+
+#### The Six-Stage Development Cycle:
+```
+1. Load & Explore    2. Preprocess       3. Split & Scale    4. Train & Compare   5. Tune Hyperparams   6. Persist
+   shape, nulls,        impute, encode,     stratified,         LR / DT / RF /       GridSearchCV          .joblib &
+   62% baseline         FamilySize          train-only fit      KNN / SVC            5-fold CV             *_encoder.pkl
+```
+
+### 7.2 Key Results & In-Lab Exercises Solutions
+
+#### Exercise 1: Feature Engineering Impact (`FamilySize` & `IsAlone`)
+- Engineered features:
+  - $\text{FamilySize} = \text{Sibling} + 1$
+  - $\text{IsAlone} = 1 \text{ if } \text{FamilySize} = 1 \text{ else } 0$
+- Evaluated on test set ($N=20$):
+  - Logistic Regression: Base $0.7500 \rightarrow$ Extended $0.7500$ ($\Delta = 0.0000$)
+  - Decision Tree: Base $0.8000 \rightarrow$ Extended $0.8000$ ($\Delta = 0.0000$)
+  - Random Forest: Base $0.8000 \rightarrow$ Extended $0.8000$ ($\Delta = 0.0000$)
+- *Analysis:* On this test partition, the baseline attribute `Sibling` already partitioned solo passengers. In full cross-validation, explicit family features stabilize linear boundaries by removing the need to estimate non-linear step cutoffs.
+
+#### Exercise 2: ROC Curve and AUC Discrimination
+- Generated multi-model ROC curve saved to `lab05/figures/roc_curve.png`.
+- Best model achieved **ROC-AUC = 0.650** on holdout test partition and **0.870** with Support Vector Machine.
+- Strong separation over the chance diagonal ($AUC = 0.500$) confirms reliable risk-stratification across probability cutoffs.
+
+#### Exercise 3: Cross-Validation Stability Analysis (5-Fold Stratified)
+- Single train/test splits give overly optimistic readings (80% accuracy).
+- 5-Fold Stratified Cross-Validation revealed the true generalization bounds:
+  - **Logistic Regression:** $0.700 \pm 0.095$ (Highest generalization stability)
+  - **Decision Tree:** $0.680 \pm 0.112$ (High variance due to deep unpruned splits)
+  - **Random Forest:** $0.640 \pm 0.124$ (Overfitting on small leaf counts)
+  - **KNN ($k=5$):** $0.630 \pm 0.117$ (Distance metric distortion in integer space)
+  - **Support Vector Machine:** $0.670 \pm 0.081$ (Tightest variance band)
+
+#### Exercise 4: Extended 5-Model Benchmark
+| Model | Test Accuracy | Precision | Recall | F1 Score | 5-Fold CV Accuracy |
+|---|---|---|---|---|---|
+| **Logistic Regression** | 0.7500 | 1.0000 | 0.5000 | 0.6667 | $0.700 \pm 0.095$ |
+| **Decision Tree** | 0.8000 | 1.0000 | 0.6000 | 0.7500 | $0.680 \pm 0.112$ |
+| **Random Forest** | 0.8000 | 1.0000 | 0.6000 | 0.7500 | $0.640 \pm 0.124$ |
+| **K-Nearest Neighbors** | 0.8000 | 0.8750 | 0.7000 | 0.7778 | $0.630 \pm 0.117$ |
+| **Support Vector Machine** | 0.8000 | 1.0000 | 0.6000 | 0.7500 | $0.670 \pm 0.081$ |
+
+#### Exercise 5: Model Selection & Deployment Justification for Lab 06
+- **Selected Model:** **Logistic Regression** (or hyperparameter-tuned Pipeline).
+- **Justification:** Sub-millisecond inference latency, smoothly calibrated posterior probabilities $P(\text{Survived} \mid \mathbf{x})$, and superior cross-validation generalization stability ($70.0\%$).
+
+### 7.3 Home Assignment: ColumnTransformer Pipeline & Data Leakage Analysis
+1. **Architecture:** Re-implemented the entire preprocessing chain using Scikit-learn's `ColumnTransformer` inside an atomic `Pipeline` with `SimpleImputer` and `OneHotEncoder`.
+2. **GridSearchCV Optimization:** Tuned `n_estimators`, `max_depth`, and `min_samples_split` across 5 stratified folds.
+   - Optimal parameters: `max_depth=3`, `n_estimators=50`, `min_samples_split=2`.
+   - Tuned pipeline CV accuracy reached **0.7300** (up from 0.6400 on raw unconstrained Random Forest).
+3. **Data Leakage Explanation:** Preprocessing on the full dataset leaks validation statistical distributions into training partitions. Enclosing transformers within `Pipeline` ensures transformers only see training fold data during `.fit_transform()`, strictly preventing data leakage.
+4. **Artefact Export:** Saved winning pipeline as `lab05/titanic_best_model.joblib` and individual transformers `lab05/*_encoder.pkl`.
+
+---
+
+## 8. Single-Command Automated Workflow
 
 The repository includes a unified, single-command automated workflow so that any newly added lab or complete portfolio update can be executed end-to-end with one command:
 
-### 7.1 Option A: In-Chat Antigravity Skill (`/solve-lab`)
+### 8.1 Option A: In-Chat Antigravity Skill (`/solve-lab`)
 Type the slash command directly in chat:
 ```
 /solve-lab
 ```
 Or specify a lab:
 ```
-solve lab 04
+solve lab 05
 ```
 **What the skill does autonomously:**
-1. Discovers the target notebook (`Lab XX.ipynb`).
+1. Discovers the target notebook (`Lab XX.ipynb` or `labXX/`).
 2. Creates `labXX/` and `labXX/figures/`.
-3. Runs all model training, evaluation, and persists artefacts (`*.pkl`, `*.npz`).
+3. Runs all model training, evaluation, and persists artefacts (`*.pkl`, `*.joblib`, `*.npz`).
 4. Solves all in-lab exercises and home assignments.
 5. Populates the notebook with executed outputs and markdown answers.
 6. Writes `labXX/report.md` and updates `docs/GUIDE.md`.
 7. Stages, commits, and pushes everything to GitHub!
 
-### 7.2 Option B: Terminal Master CLI (`solve_lab.py`)
+### 8.2 Option B: Terminal Master CLI (`solve_lab.py`)
 Run from PowerShell or terminal:
 ```powershell
 # Build specific lab
-python solve_lab.py --lab 4
+python solve_lab.py --lab 5
 
 # Build specific lab and automatically push to GitHub
-python solve_lab.py --lab 4 --push
+python solve_lab.py --lab 5 --push
 
 # Auto-detect latest uploaded lab and push
 python solve_lab.py --auto --push
 
-# Re-build all labs (01, 02, 03, 04)
+# Re-build all labs (01, 02, 03, 04, 05)
 python solve_lab.py --all
 ```
 
 ---
 
-## 8. Verification and Reproduction Instructions
+## 9. Verification and Reproduction Instructions
 
 To execute and verify the complete workflow on any machine running Windows, macOS, or Linux:
 

@@ -6,7 +6,7 @@ Master One-Command Automated Laboratory Pipeline Runner for AI-101L.
 Usage Examples:
     python solve_lab.py --lab 4             # Build Lab 04 deliverables and solve exercises
     python solve_lab.py --lab 4 --push      # Build Lab 04 and automatically push to GitHub
-    python solve_lab.py --all               # Re-build all labs (01, 02, 03, 04)
+    python solve_lab.py --all               # Re-build all labs (01, 02, 03, 04, 05)
     python solve_lab.py --auto              # Auto-detect newly added lab and complete it
 """
 
@@ -25,6 +25,7 @@ LAB_SCRIPTS = {
     2: os.path.join(ROOT, "lab02", "build_deliverables.py"),
     3: os.path.join(ROOT, "lab03", "build_deliverables.py"),
     4: os.path.join(ROOT, "lab04", "build_deliverables.py"),
+    5: os.path.join(ROOT, "lab05", "build_deliverables.py"),
 }
 
 def run_command(cmd, desc=""):
@@ -110,7 +111,7 @@ def main():
         for num in sorted(LAB_SCRIPTS.keys()):
             run_lab(num)
         if args.push:
-            git_push("01-04")
+            git_push("01-05")
     elif args.lab:
         run_lab(args.lab, push=args.push)
     elif args.auto:

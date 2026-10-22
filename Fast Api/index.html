@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Diabetes Predictor</title>
+  <style>
+    body { font-family: Arial; max-width: 420px; margin: 40px auto; }
+    input, button { width: 100%; padding: 8px; margin: 5px 0; box-sizing: border-box; }
+    button { background: #2563eb; color: white; border: none; cursor: pointer; }
+    #result { margin-top: 15px; font-size: 20px; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <h2>Diabetes Prediction</h2>
+
+  <input id="Glucose" type="number" step="any" placeholder="Glucose">
+<input id="BloodPressure" type="number" step="any" placeholder="Blood Pressure">
+<input id="Insulin" type="number" step="any" placeholder="Insulin">
+<input id="BMI" type="number" step="any" placeholder="BMI">
+<input id="DiabetesPedigreeFunction" type="number" step="any" placeholder="Diabetes Pedigree Function">
+<input id="Age" type="number" step="any" placeholder="Age">
+
+
+  <button onclick="predict()">Predict</button>
+  <div id="result"></div>
+
+  <script>
+    const API_URL = "http://localhost:8000/predict";
+    const fields = ["Glucose","BloodPressure","Insulin",
+                "BMI","DiabetesPedigreeFunction","Age"];
+
+
+    async function predict() {
+      const data = {};
+      for (const f of fields) {
+        const v = document.getElementById(f).value;
+        if (v === "") { alert("Please fill " + f); return; }
+        data[f] = parseFloat(v);
+      }
+      try {
+        const res = await fetch(API_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data)
+        });
+        const out = await res.json();
+        document.getElementById("result").innerText = "Result: " + out.prediction;
+      } catch (e) {
+        document.getElementById("result").innerText = "API se connect nahi hua";
+      }
+    }
+  </script>
+</body>
+</html>
